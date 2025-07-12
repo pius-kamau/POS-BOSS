@@ -1,32 +1,37 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize date and time
     updateDateTime();
     setInterval(updateDateTime, 1000);
-    
-    // Sample product database
+
+    // Products database with prices in KSh
     const products = {
-        '4901234567890': { name: 'Apples', price: 2.99 },
-        '5901234567891': { name: 'Bananas', price: 1.49 },
-        '6901234567892': { name: 'Milk', price: 3.49 },
-        '7901234567893': { name: 'Bread', price: 2.29 },
-        '8901234567894': { name: 'Eggs', price: 3.99 },
-        '9901234567895': { name: 'Cheese', price: 4.59 },
-        '1001234567896': { name: 'Chicken', price: 7.99 },
-        '1101234567897': { name: 'Rice', price: 5.49 },
-        '1201234567898': { name: 'Pasta', price: 1.99 },
-        '1301234567899': { name: 'Coffee', price: 8.99 }
+        '4901234567890': { name: 'Apples', price: 350 },       // KSh 350
+        '5901234567891': { name: 'Bananas', price: 180 },      // KSh 180
+        '6901234567892': { name: 'Milk', price: 420 },         // KSh 420
+        '7901234567893': { name: 'Bread', price: 270 },        // KSh 270
+        '8901234567894': { name: 'Eggs', price: 480 },         // KSh 480
+        '9901234567895': { name: 'Cheese', price: 550 },       // KSh 550
+        '1001234567896': { name: 'Chicken', price: 950 },      // KSh 950
+        '1101234567897': { name: 'Rice', price: 650 },         // KSh 650
+        '1201234567898': { name: 'Pasta', price: 230 },        // KSh 230
+        '1301234567899': { name: 'Coffee', price: 1050 }       // KSh 1050
     };
-    
+
+    // Create a currency formatter function for Kenyan Shillings
+    function formatCurrency(amount) {
+        return `KSh ${amount.toLocaleString('en-KE')}`;
+    }
+
     // Cart state
     let cart = [];
     let currentQuantity = 1;
     let selectedPaymentMethod = null;
     let quaggaInitialized = false;
-    
+
     // Cashier management
     let currentCashier = "Alex"; // Default cashier
     const cashierSelect = document.getElementById('cashierSelect');
-    
+
     // DOM elements
     const cartItemsEl = document.getElementById('cartItems');
     const subtotalEl = document.getElementById('subtotal');
@@ -53,51 +58,51 @@ document.addEventListener('DOMContentLoaded', function() {
     const retryPermissionBtn = document.getElementById('retryPermissionBtn');
     const barcodeNotification = document.getElementById('barcodeNotification');
     const detectedBarcode = document.getElementById('detectedBarcode');
-    
+
     // Event listeners
-    barcodeInput.addEventListener('keyup', function(e) {
+    barcodeInput.addEventListener('keyup', function (e) {
         if (e.key === 'Enter') {
             processBarcode();
         }
     });
-    
+
     searchBtn.addEventListener('click', processBarcode);
-    
+
     // Cashier selection
-    cashierSelect.addEventListener('change', function() {
+    cashierSelect.addEventListener('change', function () {
         currentCashier = this.options[this.selectedIndex].text;
     });
-    
+
     // Scanner activation
-    scanner.addEventListener('click', function() {
+    scanner.addEventListener('click', function () {
         if (!quaggaInitialized) {
             startScanner();
         }
     });
-    
+
     startScanBtn.addEventListener('click', startScanner);
     stopScanBtn.addEventListener('click', stopScanner);
     retryPermissionBtn.addEventListener('click', startScanner);
-    
+
     // Product buttons
     document.querySelectorAll('.product-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const id = this.dataset.id;
             const name = this.dataset.name;
             const price = parseFloat(this.dataset.price);
-            
+
             addToCart(id, name, price, currentQuantity);
             scanner.classList.add('beep');
-            
+
             setTimeout(() => {
                 scanner.classList.remove('beep');
             }, 500);
         });
     });
-    
+
     // Number pad
     document.querySelectorAll('.num-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const value = this.textContent;
             if (value === 'C') {
                 currentQuantity = 1;
@@ -111,71 +116,71 @@ document.addEventListener('DOMContentLoaded', function() {
             addQuantityBtn.textContent = `Add (${currentQuantity})`;
         });
     });
-    
+
     // Add quantity button
-    addQuantityBtn.addEventListener('click', function() {
+    addQuantityBtn.addEventListener('click', function () {
         if (barcodeInput.value) {
             processBarcode();
         } else {
             alert('Please scan or enter a product first');
         }
     });
-    
+
     // Clear cart
-    clearBtn.addEventListener('click', function() {
+    clearBtn.addEventListener('click', function () {
         if (confirm('Are you sure you want to clear the current order?')) {
             cart = [];
             updateCart();
         }
     });
-    
+
     // Payment method selection
     document.querySelectorAll('.payment-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const method = this.id.replace('Btn', '');
             selectPaymentMethod(method);
         });
     });
-    
+
     // Complete sale button
-    completeBtn.addEventListener('click', function() {
+    completeBtn.addEventListener('click', function () {
         if (cart.length === 0) {
             alert('Please add items to the cart first');
             return;
         }
-        
+
         if (!selectedPaymentMethod) {
             alert('Please select a payment method');
             return;
         }
-        
+
         processSale();
     });
-    
+
     // Receipt button
-    receiptBtn.addEventListener('click', function() {
+    receiptBtn.addEventListener('click', function () {
         if (cart.length === 0) {
             alert('No items in the current order');
             return;
         }
-        
+
         generateReceipt();
         receiptModal.style.display = 'flex';
     });
-    
+
     // Close receipt modal
-    closeReceiptBtn.addEventListener('click', function() {
+    closeReceiptBtn.addEventListener('click', function () {
         receiptModal.style.display = 'none';
     });
-    
+
     // Print button
-    printBtn.addEventListener('click', function() {
+    printBtn.addEventListener('click', function () {
         alert('Receipt sent to printer');
         receiptModal.style.display = 'none';
     });
-    
+
     // Close modals when clicking outside
-    window.addEventListener('click', function(e) {
+    window.addEventListener('click', function (e) {
         if (e.target === receiptModal) {
             receiptModal.style.display = 'none';
         }
@@ -183,46 +188,46 @@ document.addEventListener('DOMContentLoaded', function() {
             cameraPermissionModal.style.display = 'none';
         }
     });
-    
+
     // Functions
     function updateDateTime() {
         const now = new Date();
         document.getElementById('time').textContent = now.toLocaleTimeString();
         document.getElementById('date').textContent = now.toLocaleDateString();
     }
-    
+
     function processBarcode() {
         const barcode = barcodeInput.value.trim();
         if (!barcode) return;
-        
+
         processScannedBarcode(barcode);
         barcodeInput.value = '';
         currentQuantity = 1;
         addQuantityBtn.textContent = 'Add';
     }
-    
+
     function processScannedBarcode(barcode) {
         // Check if barcode exists in our database
         if (products[barcode]) {
             const product = products[barcode];
             addToCart(barcode, product.name, product.price, currentQuantity);
             scanner.classList.add('beep');
-            
+
             setTimeout(() => {
                 scanner.classList.remove('beep');
             }, 500);
         } else {
             // Try to find by name (case insensitive)
             const searchTerm = barcode.toLowerCase();
-            const foundProduct = Object.entries(products).find(([_, product]) => 
+            const foundProduct = Object.entries(products).find(([_, product]) =>
                 product.name.toLowerCase().includes(searchTerm)
             );
-            
+
             if (foundProduct) {
                 const [id, product] = foundProduct;
                 addToCart(id, product.name, product.price, currentQuantity);
                 scanner.classList.add('beep');
-                
+
                 setTimeout(() => {
                     scanner.classList.remove('beep');
                 }, 500);
@@ -231,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     function startScanner() {
         if (quaggaInitialized) {
             Quagga.start();
@@ -240,9 +245,9 @@ document.addEventListener('DOMContentLoaded', function() {
             stopScanBtn.classList.remove('hidden');
             return;
         }
-        
+
         scannerPlaceholder.classList.add('hidden');
-        
+
         Quagga.init({
             inputStream: {
                 name: "Live",
@@ -281,20 +286,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             },
-        }, function(err) {
+        }, function (err) {
             if (err) {
                 console.error(err);
                 scannerPlaceholder.classList.remove('hidden');
                 cameraPermissionModal.style.display = 'flex';
                 return;
             }
-            
+
             quaggaInitialized = true;
             startScanBtn.classList.add('hidden');
             stopScanBtn.classList.remove('hidden');
-            
+
             Quagga.start();
-            
+
             // Make sure the video is properly sized
             setTimeout(() => {
                 const video = document.querySelector('#scanner-container video');
@@ -305,24 +310,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 500);
         });
-        
-        Quagga.onDetected(function(result) {
+
+        Quagga.onDetected(function (result) {
             const code = result.codeResult.code;
-            
+
             // Show notification
             detectedBarcode.textContent = code;
             barcodeNotification.classList.add('show');
-            
+
             // Process the barcode
             processScannedBarcode(code);
-            
+
             // Hide notification after 3 seconds
             setTimeout(() => {
                 barcodeNotification.classList.remove('show');
             }, 3000);
         });
     }
-    
+
     function stopScanner() {
         if (quaggaInitialized) {
             Quagga.stop();
@@ -331,11 +336,11 @@ document.addEventListener('DOMContentLoaded', function() {
             stopScanBtn.classList.add('hidden');
         }
     }
-    
+
     function addToCart(id, name, price, quantity) {
         // Check if product already in cart
         const existingItem = cart.find(item => item.id === id);
-        
+
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
@@ -346,11 +351,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 quantity
             });
         }
-        
+
         updateCart();
-        showNotification(`Added: ${name} x${quantity}`);
     }
-    
+
     function showNotification(message, type = 'success') {
         const notification = document.createElement('div');
         notification.className = `notification ${type === 'success' ? '' : 'error'}`;
@@ -360,14 +364,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </svg>
             <span>${message}</span>
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         // Animate in
         setTimeout(() => {
             notification.classList.add('show');
         }, 10);
-        
+
         // Remove after 3 seconds
         setTimeout(() => {
             notification.classList.remove('show');
@@ -376,10 +380,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }, 3000);
     }
-    
+
     function updateCart() {
         cartItemsEl.innerHTML = '';
-        
+
         if (cart.length === 0) {
             cartItemsEl.innerHTML = `
                 <div class="cart-empty">
@@ -389,68 +393,68 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p>No items in cart</p>
                 </div>
             `;
-            subtotalEl.textContent = '$0.00';
-            taxEl.textContent = '$0.00';
-            totalEl.textContent = '$0.00';
+            subtotalEl.textContent = formatCurrency(0);
+            taxEl.textContent = formatCurrency(0);
+            totalEl.textContent = formatCurrency(0);
             completeBtn.disabled = true;
             completeBtn.classList.add('btn-disabled');
             return;
         }
-        
+
         let subtotal = 0;
-        
+
         cart.forEach((item, index) => {
             const itemTotal = item.price * item.quantity;
             subtotal += itemTotal;
-            
+
             const itemEl = document.createElement('div');
             itemEl.className = 'cart-item';
             itemEl.innerHTML = `
                 <div class="cart-item-details">
                     <div class="cart-item-name">${item.name}</div>
-                    <div class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity}</div>
+                    <div class="cart-item-price">${formatCurrency(item.price)} × ${item.quantity}</div>
                 </div>
                 <div class="cart-item-total">
-                    <div class="cart-item-total-price">$${itemTotal.toFixed(2)}</div>
+                    <div class="cart-item-total-price">${formatCurrency(itemTotal)}</div>
                     <button class="cart-item-remove" data-index="${index}">Remove</button>
                 </div>
             `;
             cartItemsEl.appendChild(itemEl);
         });
-        
+
         // Add event listeners to remove buttons
         document.querySelectorAll('.cart-item-remove').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const index = parseInt(this.dataset.index);
                 cart.splice(index, 1);
                 updateCart();
             });
         });
-        
+
         const tax = subtotal * 0.08;
         const total = subtotal + tax;
-        
-        subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-        taxEl.textContent = `$${tax.toFixed(2)}`;
-        totalEl.textContent = `$${total.toFixed(2)}`;
-        
+
+        subtotalEl.textContent = formatCurrency(subtotal);
+        taxEl.textContent = formatCurrency(tax);
+        totalEl.textContent = formatCurrency(total);
+
         completeBtn.disabled = false;
         completeBtn.classList.remove('btn-disabled');
     }
-    
+
     function selectPaymentMethod(method) {
         selectedPaymentMethod = method;
-        
+
         // Reset all buttons
         document.querySelectorAll('.payment-btn').forEach(btn => {
             btn.classList.remove('selected');
         });
-        
+
         // Highlight selected button
         document.getElementById(`${method}Btn`).classList.add('selected');
-        
+
         // Show payment details based on method
-        switch(method) {
+        switch (method) {
             case 'cash':
                 paymentDetails.innerHTML = `
                     <div class="payment-row">
@@ -466,31 +470,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="changeAmount" class="hidden">
                         <div class="payment-row">
                             <span>Change:</span>
-                            <span id="changeValue" class="payment-value">$0.00</span>
+                            <span id="changeValue" class="payment-value">KSh 0</span>
                         </div>
                     </div>
                 `;
-                
-                document.getElementById('calculateChangeBtn').addEventListener('click', function() {
+
+                document.getElementById('calculateChangeBtn').addEventListener('click', function () {
                     const cashAmount = parseFloat(document.getElementById('cashAmount').value);
-                    const totalDue = parseFloat(totalEl.textContent.replace('$', ''));
-                    
+                    const totalDue = parseFloat(totalEl.textContent.replace('KSh', '').replace(/,/g, ''));
+
                     if (isNaN(cashAmount)) {
                         alert('Please enter a valid amount');
                         return;
                     }
-                    
+
                     if (cashAmount < totalDue) {
                         alert('Cash amount is less than total due');
                         return;
                     }
-                    
+
                     const change = cashAmount - totalDue;
-                    document.getElementById('changeValue').textContent = `$${change.toFixed(2)}`;
+                    document.getElementById('changeValue').textContent = formatCurrency(change);
                     document.getElementById('changeAmount').classList.remove('hidden');
                 });
                 break;
-                
+
             case 'card':
                 paymentDetails.innerHTML = `
                     <div class="payment-row">
@@ -503,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 break;
-                
+
             case 'mobile':
                 paymentDetails.innerHTML = `
                     <div class="payment-row">
@@ -525,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 break;
-                
+
             case 'giftCard':
                 paymentDetails.innerHTML = `
                     <div class="payment-row">
@@ -541,13 +545,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 break;
         }
-        
+
         paymentDetails.style.display = 'block';
     }
-    
+
     function processSale() {
         processingModal.style.display = 'flex';
-        
+
         // Simulate payment processing
         let step = 0;
         const steps = [
@@ -557,7 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Finalizing transaction...',
             'Payment approved!'
         ];
-        
+
         const interval = setInterval(() => {
             if (step < steps.length) {
                 processingStatus.textContent = steps[step];
@@ -571,11 +575,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 800);
     }
-    
+
     function completeSale() {
         generateReceipt();
         receiptModal.style.display = 'flex';
-        
+
         // Reset everything
         cart = [];
         updateCart();
@@ -584,29 +588,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.payment-btn').forEach(btn => {
             btn.classList.remove('selected');
         });
-        
+
         showNotification('Sale completed successfully!');
     }
-    
+
     function generateReceipt() {
         const now = new Date();
         const dateStr = now.toLocaleDateString();
         const timeStr = now.toLocaleTimeString();
-        
+
         let subtotal = 0;
         cart.forEach(item => {
             subtotal += item.price * item.quantity;
         });
-        
+
         const tax = subtotal * 0.08;
         const total = subtotal + tax;
-        
+
         let receiptHTML = `
             <div class="receipt-header">
-                <div class="receipt-store-name">SuperMarket</div>
-                <div class="receipt-store-info">123 Main Street</div>
-                <div class="receipt-store-info">Anytown, ST 12345</div>
-                <div class="receipt-store-info">Tel: (555) 123-4567</div>
+                <div class="receipt-store-name">Supermatt</div>
+                <div class="receipt-store-info">Moi Avenue</div>
+                <div class="receipt-store-info">Nairobi, Kenya</div>
+                <div class="receipt-store-info">Tel: (254) 115 790 058</div>
             </div>
             
             <div class="receipt-meta">
@@ -627,34 +631,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="receipt-item-total">Total</div>
                 </div>
         `;
-        
+
         cart.forEach(item => {
             const itemTotal = item.price * item.quantity;
             receiptHTML += `
                 <div class="receipt-item">
                     <div>${item.name}</div>
-                    <div class="receipt-item-price">$${item.price.toFixed(2)}</div>
+                    <div class="receipt-item-price">${formatCurrency(item.price)}</div>
                     <div class="receipt-item-qty">${item.quantity}</div>
-                    <div class="receipt-item-total">$${itemTotal.toFixed(2)}</div>
+                    <div class="receipt-item-total">${formatCurrency(itemTotal)}</div>
                 </div>
             `;
         });
-        
+
         receiptHTML += `
             </div>
             
             <div class="receipt-summary">
                 <div class="summary-row">
                     <span>Subtotal:</span>
-                    <span>$${subtotal.toFixed(2)}</span>
+                    <span>${formatCurrency(subtotal)}</span>
                 </div>
                 <div class="summary-row">
                     <span>Tax (8%):</span>
-                    <span>$${tax.toFixed(2)}</span>
+                    <span>${formatCurrency(tax)}</span>
                 </div>
                 <div class="summary-total">
                     <span>Total:</span>
-                    <span>$${total.toFixed(2)}</span>
+                    <span>${formatCurrency(total)}</span>
                 </div>
             </div>
             
@@ -663,15 +667,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="receipt-note">Please keep your receipt for returns</div>
             </div>
         `;
-        
+
         receiptContent.innerHTML = receiptHTML;
     }
-    
+
     // Initialize the cart display
     updateCart();
-    
+
     // Clean up Quagga when page is unloaded
-    window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function () {
         if (quaggaInitialized) {
             Quagga.stop();
         }
